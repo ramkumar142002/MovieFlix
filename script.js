@@ -211,7 +211,7 @@ getMovies(API_URL);
 function showMovies(data) {
     main.innerHTML = '';
     data.forEach(movie => {
-        const { title, poster_path, vote_average, overview } = movie;
+        const { title, poster_path, vote_average, overview, id } = movie;
         const movieEl = document.createElement('div');
         movieEl.classList.add('movie');
         movieEl.innerHTML = `
@@ -224,10 +224,16 @@ function showMovies(data) {
             <h2>${title}</h2>
             <h3>Overview</h3>
             ${overview}
+             <br/>
+             <button class="know-more" id="${id}">Know More</button>
             </div>
         `
 
         main.appendChild(movieEl);
+        document.getElementById(id).addEventListener('click', () => {
+            console.log(id);
+            openNav(movie);
+        })
     })
 }
 
@@ -284,3 +290,104 @@ function pageCall(page) {
         getMovies(url);
     }
 }
+
+const overlaycontent = document.getElementById('overlay-content');
+function openNav(movie) {
+    let id = movie.id;
+    fetch(BASE_URL + '/movie/' + id + '/videos?' + API_KEY).then(res => res.json()).then(videodata => {
+        console.log(videodata);
+        if (videodata) {
+            document.getElementById("myNav").style.width = "100%";
+            if (videodata.results.length > 0) {
+                var embed = [];
+                var dots = [];
+                videodata.results.forEach((video, idx) => {
+                    let { name, key, site } = video;
+                    if (site == 'YouTube') {
+                        embed.push(
+                            `<iframe width="560" height="315" src="https://www.youtube.com/embed/${key}?si=GYasyg5CK7KseUpf" title="${name}" class="embed hide" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                            `
+                        )
+                        dots.push(`
+                            <span class="dot">${idx + 1}</span>
+                        `)
+                    }
+                })
+
+                var content = `
+                <h1 class = 'noResults'>${movie.original_title}</h1>
+                <br/>
+
+                ${embed.join('')}
+                <br/>
+
+                <div class="dots">${dots.join('')}</div>
+                `
+
+                overlaycontent.innerHTML = content;
+                activeSlide = 0;
+                showVideos();
+
+            }
+            else {
+                overlaycontent.innerHTML = `<h1 class = 'noResults'> No Results </h1>`
+            }
+        }
+    })
+
+}
+
+/* Close when someone clicks on the "x" symbol inside the overlay */
+function closeNav() {
+    document.getElementById("myNav").style.width = "0%";
+}
+
+var activeSlide = 0;
+var totalVideos = 0;
+
+function showVideos() {
+    let embedclasses = document.querySelectorAll('.embed');
+    let dots = document.querySelectorAll('.dot');
+    totalVideos = embedclasses.length
+    embedclasses.forEach((embedTag, idx) => {
+        if (activeSlide == idx) {
+            embedTag.classList.add('show');
+            embedTag.classList.remove('hide');
+        }
+        else {
+            embedTag.classList.add('hide');
+            embedTag.classList.remove('show');
+        }
+    })
+    dots.forEach((dot, idx) => {
+        if (activeSlide == idx) {
+            dot.classList.add('active');
+        }
+        else {
+            dot.classList.remove('active');
+        }
+    })
+}
+
+const leftarrow = document.getElementById('leftarrow');
+const rightarrow = document.getElementById('rightarrow');
+
+leftarrow.addEventListener('click', () => {
+    if (activeSlide > 0) {
+        activeSlide--;
+    }
+    else {
+        activeSlide = totalVideos - 1;
+    }
+    showVideos();
+})
+
+rightarrow.addEventListener('click', () => {
+    if (activeSlide < totalVideos - 1) {
+        activeSlide++;
+    }
+    else {
+        activeSlide = 0;
+    }
+    showVideos();
+})
